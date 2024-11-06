@@ -1,0 +1,11 @@
+## Testing version
+
+
+database:
+  URL: ""
+  Name: ""
+  User: ""
+  Password: ""
+
+
+config_version: 0.1
