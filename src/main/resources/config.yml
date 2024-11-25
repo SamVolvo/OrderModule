@@ -7,5 +7,11 @@ database:
   User: ""
   Password: ""
 
+channels:
+  log: ""
 
-config_version: 0.1
+roles:
+  staff: ""
+
+
+config_version: 0.2

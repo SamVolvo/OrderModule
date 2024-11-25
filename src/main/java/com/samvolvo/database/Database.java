@@ -5,7 +5,7 @@ import com.samvolvo.database.models.OrderData;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import net.dv8tion.jda.api.entities.User;
-import org.slf4j.Logger;
+import com.samvolvo.utils.Logger;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -18,10 +18,11 @@ public class Database {
     public Database(Main module){
         try{
             this.module = module;
+            Class.forName("com.mysql.cj.jdbc.Driver");
             HikariConfig dbConfig = new HikariConfig();
             dbConfig.setJdbcUrl("jdbc:mysql://"+ module.getConfigLoader().getConfig().getString("database.URL") +"/" + module.getConfigLoader().getConfig().getString("database.Name"));
-            dbConfig.setUsername("yourUsername");
-            dbConfig.setPassword("yourPassword");
+            dbConfig.setUsername(module.getConfigLoader().getConfig().getString("database.User"));
+            dbConfig.setPassword(module.getConfigLoader().getConfig().getString("database.Password"));
             dbConfig.addDataSourceProperty("cachePrepStmts", "true");
             dbConfig.addDataSourceProperty("prepStmtCacheSize", "250");
             dbConfig.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
@@ -62,25 +63,29 @@ public class Database {
         }
     }
 
+
+    // OrderTable
     private void createTables(){
         Connection connection = getConnection();
         try{
             Statement orderDataStatement = connection.createStatement();
             orderDataStatement.execute(
                     "CREATE TABLE IF NOT EXISTS OrderData (\n" +
-                            "    OrderID INT AUTO_INCREMENT PRIMARY KEY,\n" +
-                            "    CustomerID INT NOT NULL,\n" +
+                            "    OrderID VARCHAR(35) PRIMARY KEY,\n" +
+                            "    CustomerID VARCHAR(35) NOT NULL,\n" +
                             "    OrderTime DATETIME NOT NULL,\n" +
                             "    TotalAmount DECIMAL(10, 2) NOT NULL,\n" +
                             "    PaymentMethod VARCHAR(50) NOT NULL,\n" +
                             "    OrderStatus VARCHAR(20) NOT NULL,\n" +
                             "    DeliveryTime DATETIME,\n" +
                             "    Notes TEXT,\n" +
-                            "    SupporterID INT NOT NULL\n" +
+                            "    SupporterID VARCHAR(35) NOT NULL\n" +
                             ");\n"
             );
+            Logger.succes("Succesfully created the database.");
         }catch (SQLException e){
-            module.getLogger().error("An error occurred while trying to create the tables.");
+            Logger.error("An error occurred while trying to create the tables.");
+            Logger.error(e.getMessage());
         }
     }
 
@@ -112,7 +117,8 @@ public class Database {
                 return null;
             }
         }catch (SQLException e){
-            module.getLogger().error("An error has occurred while trying to find the OrderData.");
+            Logger.error("An error has occurred while trying to find the OrderData.");
+            Logger.error(e.getMessage());
             return null;
         }
     }
@@ -134,16 +140,20 @@ public class Database {
             statement.setString(9, data.getNotes());
             statement.executeUpdate();
             statement.close();
+            Logger.debug("Created an order on id: " + data.getOrderId());
         }catch (SQLException e){
-            module.getLogger().error("An error occurred while creating the data in the table.");
+            Logger.error("An error occurred while creating the data in the table.");
+            Logger.error(e.getMessage());
         }
     }
 
-    public OrderData checkIfExists(OrderData data){
-        if (findOrderDataByOrderId(data.getOrderId()) != null){
-            return findOrderDataByOrderId(data.getOrderId());
+    public boolean checkIfExists(String orderId){
+        if (findOrderDataByOrderId(orderId) != null){
+            Logger.warning("An order has been found with id: " + orderId);
+            return true;
         } else {
-            return null;
+            Logger.warning("No Data was found with the id: " + orderId);
+            return false;
         }
     }
 
@@ -164,7 +174,30 @@ public class Database {
             statement.executeUpdate();
             statement.close();
         }catch (SQLException e){
-            module.getLogger().error("An error occurred while updating the OrderData");
+            Logger.error("An error occurred while updating the OrderData");
+            Logger.error(e.getMessage());
+        }
+    }
+
+    public boolean deleteOrderData(String orderId) {
+        try {
+            PreparedStatement statement = getConnection().prepareStatement(
+                    "DELETE FROM OrderData WHERE OrderID = ?;"
+            );
+            statement.setString(1, orderId);
+            int rowsAffected = statement.executeUpdate();
+            statement.close();
+
+            if (rowsAffected > 0) {
+                return true;
+            } else {
+                return false;
+            }
+
+        } catch (SQLException e) {
+            Logger.error("An error occurred while deleting the OrderData.");
+            Logger.error(e.getMessage());
+            return false;
         }
     }
 }

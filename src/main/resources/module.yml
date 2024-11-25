@@ -1,5 +1,5 @@
 name: OrderModule
 version: '${project.version}'
 description: Database OrderSystem
-author: SamVolvo
+author: "SamVolvo"
 priority: DEFAULT
